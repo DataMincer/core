@@ -26,7 +26,7 @@ class DeckManager {
   protected $pluginsInfo;
   protected $plugins;
 
-  function __construct($options, LoggerInterface $logger) {
+  function __construct($options, $logger) {
     $this->options = $this->parseOptions($options);
     DataMincer::setDebug($options['debug']);
     DataMincer::setLogger($logger);

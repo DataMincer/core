@@ -10,7 +10,7 @@ class DataMincer {
   /** @var LoggerInterface */
   protected static $logger;
 
-  public static function setLogger(LoggerInterface $logger) {
+  public static function setLogger($logger) {
     static::$logger = $logger;
   }
 
