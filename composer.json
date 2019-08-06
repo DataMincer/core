@@ -1,0 +1,29 @@
+{
+  "name": "datamincer/core",
+  "version": "0.1",
+  "description": "DataMincer: Core",
+  "license": "LGPL-3.0-or-later",
+  "authors": [
+    {
+      "name": "Artiom Neganov",
+      "email": "aneganov@gmail.com",
+      "role": "Developer"
+    }
+  ],
+  "type": "library",
+  "prefer-stable": true,
+  "require":  {
+    "ext-mbstring": "*",
+    "symfony/yaml": "2.*",
+    "romaricdrigon/metayaml": "dev-master",
+    "onkeltem/yaml-elc": "dev-master"
+  },
+  "autoload": {
+    "psr-4": {
+      "DataMincerCore\\": "src/"
+    },
+    "files": [
+      "src/DataMincer.php"
+    ]
+  }
+}
