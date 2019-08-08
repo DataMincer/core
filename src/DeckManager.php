@@ -458,11 +458,8 @@ class DeckManager {
         continue;
       }
       $dir = $fileInfo->getFilename();
-      if (strpos($dir, '.') === FALSE) {
-        continue;
-      }
-      list($bundle_name, $suffix) = explode('.', $dir);
-      if ($suffix == 'bundle' && file_exists($file = $opt['basePath'] . '/' . $dir . '/' . $bundle_name . '.yml')) {
+      if (file_exists($file = $opt['basePath'] . '/' . $dir . '/' . $dir . '.yml')) {
+        $bundle_name = $dir;
         // TODO Add overrides
         $bundles_data[$bundle_name] = [
           'path' => $opt['basePath'] . '/' . $dir,
