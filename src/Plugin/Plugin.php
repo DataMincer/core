@@ -81,17 +81,54 @@ abstract class Plugin implements PluginInterface {
     // Filter paths
     if ($include_paths) {
       $paths = array_filter($paths, function ($item) use ($include_paths) {
-        return in_array($item, $include_paths);
+        return $this->arrayInArrays($item, $include_paths);
       });
     }
     if ($exclude_paths) {
       $paths = array_filter($paths, function ($item) use ($exclude_paths) {
-        return !in_array($item, $exclude_paths);
+        return !$this->arrayInArrays($item, $exclude_paths);
       });
     }
     $result = [];
     foreach ($paths as $path) {
       $this->evaluateByPath($result, $path, $this->config, $data);
+    }
+    return $result;
+  }
+
+  /**
+   * @param $needle
+   * @param $arrays
+   * @return bool
+   * @throws PluginException
+   */
+  protected function arrayInArrays($needle, $arrays) {
+    foreach($arrays as $array) {
+       if ($this->arrayIncludes($array, $needle)) {
+         return TRUE;
+       }
+    }
+    return FALSE;
+  }
+
+  /**
+   * @param $a
+   * @param $b
+   * @return bool
+   * @throws PluginException
+   */
+  protected function arrayIncludes($a, $b) {
+    $result = FALSE;
+    for ($i = 0; $i < count($a); $i++) {
+      if (!array_key_exists($i, $b)) {
+        $this->error('Wrong path constraint: ' . implode('.', $a));
+      }
+      if ($a[$i] === $b[$i]) {
+        $result = TRUE;
+      }
+      else {
+        return FALSE;
+      }
     }
     return $result;
   }

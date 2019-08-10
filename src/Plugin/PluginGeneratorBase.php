@@ -54,7 +54,6 @@ abstract class PluginGeneratorBase extends PluginFieldable implements PluginGene
     }
     while (!$force_quit && $task->valid()) {
       $data = $task->current();
-      $result[$key][] = $data;
       if ($worker instanceof PluginBufferingWorkerBase) {
         if ($worker->isBuffering()) {
           $worker->bufferItem($data);
@@ -70,8 +69,12 @@ abstract class PluginGeneratorBase extends PluginFieldable implements PluginGene
         }
       }
       else if (count($workers_info)) {
+        $result[$key][] = $data;
         $res = $this->processWorkers($workers_info, $data);
         $result = $this->mergeWorkerResults($result, $res);
+      }
+      else {
+        $result[$key][] = $data;
       }
       try {
         $task->next();
@@ -93,17 +96,19 @@ abstract class PluginGeneratorBase extends PluginFieldable implements PluginGene
   protected function finalizeWorkers($workers_info, $workers_results) {
     /** @var PluginWorkerBase $worker */
     list($key, $worker, $config) = array_shift($workers_info);
-    $results = $workers_results[$key];
+    $result = &$workers_results;
     if ($worker instanceof PluginBufferingWorkerBase) {
       if (!$worker->isBufferEmpty()) {
         $data = $worker->processBuffer();
+        $result[$key][] = $data;
         if (count($workers_info)) {
-          $this->processWorkers($workers_info, $data);
+          $res = $this->processWorkers($workers_info, $data);
+          $result = $this->mergeWorkerResults($result, $res);
         }
       }
     }
     else {
-      $worker->finalize($config, $results);
+      $worker->finalize($config, $result[$key]);
     }
     if (count($workers_info)) {
       $this->finalizeWorkers($workers_info, $workers_results);

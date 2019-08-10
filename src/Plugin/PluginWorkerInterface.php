@@ -17,7 +17,8 @@ interface PluginWorkerInterface extends PluginInterface {
   /**
    * @param $config
    * @param $results
-   * @return mixed
+   * @return mixed|void
+   * @throws PluginException
    */
   public function finalize($config, $results);
 
