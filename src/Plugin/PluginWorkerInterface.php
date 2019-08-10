@@ -8,14 +8,17 @@ use DataMincerCore\Exception\PluginException;
 interface PluginWorkerInterface extends PluginInterface {
 
   /**
+   * @param $config
    * @return Generator
    * @throws PluginException
    */
-  public function process();
+  public function process($config);
 
-  public function finalizeWrapper();
-
-  public function finalize();
-
+  /**
+   * @param $config
+   * @param $results
+   * @return mixed
+   */
+  public function finalize($config, $results);
 
 }

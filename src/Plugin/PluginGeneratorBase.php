@@ -17,25 +17,32 @@ abstract class PluginGeneratorBase extends PluginFieldable implements PluginGene
    * @inheritDoc
    * @throws PluginException
    */
-  public function evaluate($data = []) {
-    $process_result = $this->processWorkers($this->config['workers'], $data);
-    $finalize_result = $this->finalizeWorkers($this->config['workers']);
-    $result = array_merge($process_result, $finalize_result);
-    return $result;
+  public function process($generator_data = [], $global_data = []) {
+    $workers_info = [];
+    foreach($this->workers as $key => $worker) {
+      $workers_info[] = [
+        $key,
+        $worker,
+        $generator_data['workers'][$key],
+      ];
+    }
+    $process_result = $this->processWorkers($workers_info, $global_data);
+    $this->finalizeWorkers($workers_info, $process_result);
+    return $process_result;
   }
 
   /**
-   * @param $workers
+   * @param $workers_info
    * @param array $parent_data
    * @return array
    * @throws PluginException
    */
-  protected function processWorkers($workers, $parent_data = []) {
+  protected function processWorkers($workers_info, $parent_data = []) {
     $result = [];
-    /** @var PluginWorkerBase $worker */
-    $worker = array_shift($workers);
+    /** @var PluginWorkerInterface $worker */
+    list($key, $worker, $config) = array_shift($workers_info);
     /** @var Generator $task */
-    $task = $worker->process();
+    $task = $worker->process($config);
     $force_quit = FALSE;
     try {
       $task->send($parent_data);
@@ -47,23 +54,24 @@ abstract class PluginGeneratorBase extends PluginFieldable implements PluginGene
     }
     while (!$force_quit && $task->valid()) {
       $data = $task->current();
+      $result[$key][] = $data;
       if ($worker instanceof PluginBufferingWorkerBase) {
         if ($worker->isBuffering()) {
           $worker->bufferItem($data);
         } else if (!$worker->isBufferEmpty()) {
           $new_data = $worker->processBuffer();
+          $result[$key][] = $new_data;
           // We still need to buffer the current $data or we're gonna lose it.
           $worker->bufferItem($data);
-          if ($workers) {
-            $this->processWorkers($workers, $new_data);
+          if ($workers_info) {
+            $res = $this->processWorkers($workers_info, $new_data);
+            $result = $this->mergeWorkerResults($result, $res);
           }
         }
       }
-      else if (count($workers)) {
-        $this->processWorkers($workers, $data);
-      }
-      else {
-        $result[] = $data;
+      else if (count($workers_info)) {
+        $res = $this->processWorkers($workers_info, $data);
+        $result = $this->mergeWorkerResults($result, $res);
       }
       try {
         $task->next();
@@ -78,33 +86,41 @@ abstract class PluginGeneratorBase extends PluginFieldable implements PluginGene
   }
 
   /**
-   * @param $workers
-   * @return array
+   * @param $workers_info
+   * @param $workers_results
    * @throws PluginException
    */
-  protected function finalizeWorkers($workers) {
-    $result = [];
+  protected function finalizeWorkers($workers_info, $workers_results) {
     /** @var PluginWorkerBase $worker */
-    $worker = array_shift($workers);
+    list($key, $worker, $config) = array_shift($workers_info);
+    $results = $workers_results[$key];
     if ($worker instanceof PluginBufferingWorkerBase) {
       if (!$worker->isBufferEmpty()) {
         $data = $worker->processBuffer();
-        if (count($workers)) {
-          $res = $this->processWorkers($workers, $data);
-          $result = array_merge($result, $res);
-        }
-        else {
-          $result[] = $data;
+        if (count($workers_info)) {
+          $this->processWorkers($workers_info, $data);
         }
       }
     }
     else {
-      $worker->finalizeWrapper();
+      $worker->finalize($config, $results);
     }
-    if (count($workers)) {
-      $this->finalizeWorkers($workers);
+    if (count($workers_info)) {
+      $this->finalizeWorkers($workers_info, $workers_results);
     }
-    return $result;
+  }
+
+  protected function mergeWorkerResults($data, $new_data) {
+    $result = [];
+    foreach ($data as $key => $item) {
+      if (array_key_exists($key, $new_data)) {
+        $result[$key] = array_merge($item, $new_data[$key]);
+      }
+      else {
+        $result[$key] = $item;
+      }
+    }
+    return $result + $new_data;
   }
 
   static function getSchemaChildren() {

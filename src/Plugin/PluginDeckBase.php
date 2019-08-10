@@ -2,6 +2,10 @@
 
 namespace DataMincerCore\Plugin;
 
+use DataMincerCore\DataMincer;
+use DataMincerCore\Exception\DeckException;
+use DataMincerCore\Exception\PluginException;
+
 abstract class PluginDeckBase extends PluginFieldable implements PluginDeckInterface {
 
   protected static $pluginType = 'deck';
@@ -36,20 +40,19 @@ abstract class PluginDeckBase extends PluginFieldable implements PluginDeckInter
 
   /**
    * @param array $generators
+   * @throws PluginException
    */
   public function taskGenerate($generators = []) {
-    $this->evaluate($this->data);
-    // TODO Fix
-//    //$this->values = $this->evaluateFields($this->config);
-//    if ($diff = array_diff($generators, array_keys($this->generators))) {
-//      throw new DeckException('Unknown generator(s): ' . implode(', ', $diff));
-//    }
-//    foreach($this->generators as $generator_name => $generator) {
-//      if (empty($generators) || in_array($generator_name, $generators)) {
-//        Ultau::logger()->msg("Running generator: $generator_name");
-//        $generator->execute();
-//      }
-//    }
+    if ($diff = array_diff($generators, array_keys($this->generators))) {
+      throw new DeckException('Unknown generator(s): ' . implode(', ', $diff));
+    }
+    foreach($this->generators as $generator_name => $generator) {
+      if (empty($generators) || in_array($generator_name, $generators)) {
+        DataMincer::logger()->msg("Running generator: $generator_name");
+        $generator_data = $generator->evaluate($this->data);
+        $generator->process($generator_data, $this->data);
+      }
+    }
   }
 
   protected function makeDeckId() {

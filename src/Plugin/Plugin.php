@@ -76,8 +76,19 @@ abstract class Plugin implements PluginInterface {
     return $this->evaluateChildren($data);
   }
 
-  public function evaluateChildren($data = []) {
+  public function evaluateChildren($data = [], $include_paths = [], $exclude_paths = []) {
     $paths = Util::arrayPaths($this->config);
+    // Filter paths
+    if ($include_paths) {
+      $paths = array_filter($paths, function ($item) use ($include_paths) {
+        return in_array($item, $include_paths);
+      });
+    }
+    if ($exclude_paths) {
+      $paths = array_filter($paths, function ($item) use ($exclude_paths) {
+        return !in_array($item, $exclude_paths);
+      });
+    }
     $result = [];
     foreach ($paths as $path) {
       $this->evaluateByPath($result, $path, $this->config, $data);

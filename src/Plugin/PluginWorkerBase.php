@@ -11,16 +11,15 @@ abstract class PluginWorkerBase extends PluginFieldable implements PluginWorkerI
   /**
    * @inheritDoc
    */
-  public function process() {
+  public function process($config) {
     $data = yield;
     yield $data;
   }
+
   /**
    * @inheritDoc
    */
-  final public function finalizeWrapper() {
-    $this->finalize();
-  }
+  public function finalize($config, $results) {}
 
   protected function mergeResult($row, $data, $config) {
     $result = [];
@@ -54,7 +53,7 @@ abstract class PluginWorkerBase extends PluginFieldable implements PluginWorkerI
   /**
    * @inheritDoc
    */
-  public function finalize() { }
+  public function finalize1() { }
 
   static function getSchemaChildren() {
     return parent::getSchemaChildren() + [
