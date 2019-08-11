@@ -43,14 +43,16 @@ abstract class PluginDeckBase extends PluginFieldable implements PluginDeckInter
    * @throws PluginException
    */
   public function taskGenerate($generators = []) {
+    // Evaluate all except for generators for now
+    $data = $this->evaluateChildren($this->data, [], [['generators']]) + $this->data;
     if ($diff = array_diff($generators, array_keys($this->generators))) {
       throw new DeckException('Unknown generator(s): ' . implode(', ', $diff));
     }
     foreach($this->generators as $generator_name => $generator) {
       if (empty($generators) || in_array($generator_name, $generators)) {
         DataMincer::logger()->msg("Running generator: $generator_name");
-        $generator_data = $generator->evaluate($this->data);
-        $generator->process($generator_data, $this->data);
+        $generator_data = $generator->evaluate($data);
+        $generator->process($generator_data, $data);
       }
     }
   }
