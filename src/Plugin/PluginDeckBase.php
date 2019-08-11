@@ -111,7 +111,6 @@ abstract class PluginDeckBase extends PluginFieldable implements PluginDeckInter
 
   static function getSchemaChildren() {
     return [
-      'version' => [ '_type' => 'text', '_required' => TRUE ],
       'services'    => [ '_type' => 'prototype', '_required' => FALSE, '_prototype' => [
         '_type' => 'partial', '_required' => TRUE, '_partial' => 'service',
       ]],
