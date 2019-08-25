@@ -6,15 +6,15 @@ use DirectoryIterator;
 use Exception;
 use ReflectionClass;
 use ReflectionException;
-use DataMincerCore\Exception\DeckException;
+use DataMincerCore\Exception\UnitException;
 use DataMincerCore\Exception\PluginException;
 use DataMincerCore\Exception\DataMincerException;
-use DataMincerCore\Plugin\PluginDeckInterface;
+use DataMincerCore\Plugin\PluginUnitInterface;
 use DataMincerCore\Plugin\PluginInterface;
 use DataMincerCore\Plugin\PluginServiceInterface;
 use YamlElc\Bundle;
 
-class DeckManager {
+class Manager {
 
   const FILTERS_SEPARATOR = ',';
 
@@ -22,7 +22,7 @@ class DeckManager {
 
   /** @var Bundle[] */
   protected $bundles;
-  protected $decksByBundle;
+  protected $unitsByBundle;
   protected $pluginsInfo;
   protected $plugins;
 
@@ -33,7 +33,7 @@ class DeckManager {
     Timer::setEnabled($options['timer']);
     $this->pluginsInfo = $this->discoverPlugins();
     $this->initBundles();
-    $this->initDecks();
+    $this->initUnits();
     if ($options['timer']) {
       register_shutdown_function(function() {
         Timer::result();
@@ -41,9 +41,9 @@ class DeckManager {
     }
   }
 
-  public function initDecks() {
+  public function initUnits() {
     foreach ($this->bundles as $bundle_name => $bundle) {
-      $this->decksByBundle[$bundle_name] = new Decks($bundle, [$this, 'initDeck']);
+      $this->unitsByBundle[$bundle_name] = new Units($bundle, [$this, 'initUnit']);
     }
   }
 
@@ -54,7 +54,7 @@ class DeckManager {
    * @return mixed
    * @throws PluginException
    */
-  public function initDeck($config, $state, $data) {
+  public function initUnit($config, $state, $data) {
     $schema = $this->baseSchema();
 
     // Extend schema and config
@@ -63,7 +63,7 @@ class DeckManager {
       $res = $this->getPluginSchemaAndConfig($config, $schema['root'], $schema['partials']);
     }
     catch (Exception $e) {
-      throw new DeckException('Schema extension error: ' . $e->getMessage(), $config);
+      throw new UnitException('Schema extension error: ' . $e->getMessage(), $config);
     }
     $config = $res['config'];
     $schema['root'] = $res['schema'];
@@ -71,23 +71,23 @@ class DeckManager {
 
     Timer::begin('Schema validation');
     if (!$this->options['novalidate'] && !Schema::validate($config, $schema, $error)) {
-      throw new DeckException("Config validation error: " . $error, $config, $schema);
+      throw new UnitException("Config validation error: " . $error, $config, $schema);
     }
     Timer::end('Schema validation');
 
-    /** @var PluginDeckInterface $deck */
-    $deck = $this->createDeck($config, $state);
+    /** @var PluginUnitInterface $unit */
+    $unit = $this->createUnit($config, $state);
 
     // Add extra data
-    $deck->setData($data);
+    $unit->setData($data);
 
     // Resolve all dependencies
-    $this->resolveDependencies($deck);
+    $this->resolveDependencies($unit);
 
-    // Initialize deck and its subcomponents
-    $deck->initialize();
+    // Initialize unit and its subcomponents
+    $unit->initialize();
 
-    return $deck;
+    return $unit;
   }
 
   protected function getPluginSchemaAndConfig($config, $schema, $partials, $plugin = NULL) {
@@ -131,14 +131,14 @@ class DeckManager {
     }
     else if ($schema['_type'] == 'partial') {
       if (!isset($partials[$schema['_partial']])) {
-        throw new DeckException('Partial "' . $schema['_partial'] . '" not found', $config, $schema);
+        throw new UnitException('Partial "' . $schema['_partial'] . '" not found', $config, $schema);
       }
 
       $plugin_type = $schema['_partial'];
 
       $_schema = $partials[$plugin_type];
       if (!array_key_exists($plugin_type, $this->pluginsInfo)) {
-        throw new DeckException('Plugin type not found: ' . $plugin_type);
+        throw new UnitException('Plugin type not found: ' . $plugin_type);
       }
 
       if (is_null($config)) {
@@ -148,7 +148,7 @@ class DeckManager {
       if (is_scalar($config)) {
         // Default plugin
         if (!($plugin_class = $this->getDefaultPlugin($plugin_type))) {
-          throw new DeckException('Default plugin not found, type: ' . $plugin_type, $config, $schema);
+          throw new UnitException('Default plugin not found, type: ' . $plugin_type, $config, $schema);
         }
         $_schema = $partials[$plugin_type];
         $config = $this->getDefaultConfig($plugin_class, $config);
@@ -160,7 +160,7 @@ class DeckManager {
 
       if (Util::isAssocArray($config)) {
         if (!array_key_exists($plugin_type, $config)) {
-          throw new DeckException("Key '$plugin_type' not found in the config.", $config, $schema);
+          throw new UnitException("Key '$plugin_type' not found in the config.", $config, $schema);
         }
         list($plugin_name, $plugin_class, $plugin_services) = $this->getPluginInfo($config[$plugin_type], $plugin_type);
         $config[$plugin_type] = $plugin_name;
@@ -173,7 +173,7 @@ class DeckManager {
         $result_partials += $res['partials'];
       }
       else {
-        throw new DeckException("$plugin_type config must be an assoc array", $config, $schema);
+        throw new UnitException("$plugin_type config must be an assoc array", $config, $schema);
       }
     }
     else {
@@ -187,7 +187,7 @@ class DeckManager {
     $plugin_info = NULL;
     list($plugin_name, $arg_names) = $this->parsePluginName($plugin_expr);
     if (!array_key_exists($plugin_name, $this->pluginsInfo[$plugins_key])) {
-      throw new DeckException('Plugin not found: ' . $plugin_name);
+      throw new UnitException('Plugin not found: ' . $plugin_name);
     }
     $plugin_info = $this->pluginsInfo[$plugins_key][$plugin_name];
     return [$plugin_name, $plugin_info, $arg_names];
@@ -206,11 +206,11 @@ class DeckManager {
     return [$name, $args];
   }
 
-  protected function createDeck($config, $state, $key = NULL, $path = []) {
+  protected function createUnit($config, $state, $key = NULL, $path = []) {
     if (array_key_exists('_pluginType', $config)) {
       $plugin_type = $config['_pluginType'];
       unset($config['_pluginType']);
-      $plugin_config = $this->createDeck($config, $state, $key, $path);
+      $plugin_config = $this->createUnit($config, $state, $key, $path);
       /** @var ReflectionClass $class */
       $class = $this->pluginsInfo[$plugin_type][$config[$plugin_type]];
       /** @var PluginInterface $plugin */
@@ -225,7 +225,7 @@ class DeckManager {
       $result = [];
       foreach ($config as $key => $info) {
         if (is_array($info)) {
-          $result[$key] = $this->createDeck($info, $state, $key, $path);
+          $result[$key] = $this->createUnit($info, $state, $key, $path);
         }
         else {
           $result[$key] = $info;
@@ -334,7 +334,7 @@ class DeckManager {
         }
       }
       catch (ReflectionException $e) {
-        throw new DeckException($e->getMessage());
+        throw new UnitException($e->getMessage());
       }
     }
     return NULL;
@@ -357,7 +357,7 @@ class DeckManager {
         // Check for nested partials
       }
       catch(ReflectionException $e) {
-        throw new DeckException("Schema extension error: " . $e->getMessage());
+        throw new UnitException("Schema extension error: " . $e->getMessage());
       }
     }
     return $result;
@@ -370,7 +370,7 @@ class DeckManager {
         $result = $class->getMethod('defaultConfig')->invoke(NULL, $arg);
       }
       catch(ReflectionException $e) {
-        throw new DeckException("Default config error: " . $e->getMessage());
+        throw new UnitException("Default config error: " . $e->getMessage());
       }
     }
     return $result;
@@ -382,7 +382,7 @@ class DeckManager {
     foreach($class_names as $class_name) {
       try {
         $class = new ReflectionClass($class_name);
-        foreach (['deck', 'service', 'generator', 'worker', 'field'] as $item) {
+        foreach (['unit', 'service', 'generator', 'worker', 'field'] as $item) {
           if ($class->implementsInterface('DataMincerCore\\Plugin\\Plugin' . ucfirst($item) . 'Interface') && !$class->isAbstract()) {
             $id = $class->getMethod('pluginId')->invoke(NULL);
             $type = $class->getMethod('pluginType')->invoke(NULL);
@@ -390,7 +390,7 @@ class DeckManager {
           }
         }
       } catch (ReflectionException $e) {
-        throw new DeckException('Discover plugins error: ' . $e->getMessage());
+        throw new UnitException('Discover plugins error: ' . $e->getMessage());
       }
     }
     return $plugins_info;
@@ -452,7 +452,7 @@ class DeckManager {
   protected function discoverBundles() {
     $bundles_data = [];
     $opt = $this->options;
-    // Find decks in the decksDir
+    // Find units in the unitsDir
     foreach (new DirectoryIterator($opt['basePath']) as $fileInfo) {
       if ($fileInfo->isDot() || !$fileInfo->isDir()) {
         continue;
@@ -488,21 +488,20 @@ class DeckManager {
 
   /**
    * @param $bundle_name
-   * @return Decks
+   * @return Units
    */
-  public function getDecks($bundle_name) {
-    return $this->decksByBundle[$bundle_name] ?? NULL;
+  public function getUnits($bundle_name) {
+    return $this->unitsByBundle[$bundle_name] ?? NULL;
   }
 
   private function baseSchema() {
     return [
-      'root' => [ '_type' => 'partial', '_required' => TRUE, '_partial' => 'deck' ],
+      'root' => [ '_type' => 'partial', '_required' => TRUE, '_partial' => 'unit' ],
       'partials' => [
-//        'version' => [ '_type' => 'text', '_required' => TRUE],
-        'deck' => [
+        'unit' => [
           '_type' => 'choice', '_required' => TRUE, '_choices' => [
             'one' => [ '_type' => 'array', '_required' => TRUE, '_children' => [
-              'deck' => [ '_type' => 'text',  '_required' => TRUE ],
+              'unit' => [ '_type' => 'text',  '_required' => TRUE ],
             ]],
           ],
         ],

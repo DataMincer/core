@@ -5,7 +5,7 @@ namespace DataMincerCore;
 use Iterator;
 use YamlElc\Bundle;
 
-class Decks implements Iterator {
+class Units implements Iterator {
 
   protected $products = [];
   protected $productsInfo = [];

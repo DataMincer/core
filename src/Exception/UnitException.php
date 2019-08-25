@@ -6,7 +6,7 @@ use DataMincerCore\DataMincer;
 use RuntimeException;
 use DataMincerCore\Util;
 
-class DeckException extends RuntimeException {
+class UnitException extends RuntimeException {
 
   public function __construct($message, $config = NULL, $schema = NULL) {
     if (DataMincer::isDebug()) {

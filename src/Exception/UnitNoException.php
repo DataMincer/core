@@ -4,7 +4,7 @@ namespace DataMincerCore\Exception;
 
 use RuntimeException;
 
-class DeckNoException extends RuntimeException {
+class UnitNoException extends RuntimeException {
 
 }
 

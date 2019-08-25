@@ -3,20 +3,20 @@
 namespace DataMincerCore\Plugin;
 
 use DataMincerCore\DataMincer;
-use DataMincerCore\Exception\DeckException;
+use DataMincerCore\Exception\UnitException;
 
 /**
  * @property PluginGeneratorInterface[] generators
  */
-abstract class PluginDeckBase extends PluginFieldable implements PluginDeckInterface {
+abstract class PluginUnitBase extends PluginFieldable implements PluginUnitInterface {
 
-  protected static $pluginType = 'deck';
+  protected static $pluginType = 'unit';
 
   protected $id;
   protected $tasks;
 
   public function initialize() {
-    $this->id = $this->makeDeckId();
+    $this->id = $this->makeUnitId();
     $this->tasks = $this->discoverTasks();
     parent::initialize();
   }
@@ -45,7 +45,7 @@ abstract class PluginDeckBase extends PluginFieldable implements PluginDeckInter
     // Generators section is not required
     if (!empty($this->generators)) {
       if ($diff = array_diff($generators, array_keys($this->generators))) {
-        throw new DeckException('Unknown generator(s): ' . implode(', ', $diff));
+        throw new UnitException('Unknown generator(s): ' . implode(', ', $diff));
       }
       foreach($this->generators as $generator_name => $generator) {
         if (empty($generators) || in_array($generator_name, $generators)) {
@@ -57,7 +57,7 @@ abstract class PluginDeckBase extends PluginFieldable implements PluginDeckInter
     }
   }
 
-  protected function makeDeckId() {
+  protected function makeUnitId() {
     return sha1(serialize($this->config));
   }
 
