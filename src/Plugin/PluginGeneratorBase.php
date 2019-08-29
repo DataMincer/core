@@ -19,6 +19,9 @@ abstract class PluginGeneratorBase extends PluginFieldable implements PluginGene
    */
   public function process($generator_data = [], $global_data = []) {
     $workers_info = [];
+    if (empty($this->workers)) {
+      return;
+    }
     foreach($this->workers as $key => $worker) {
       $workers_info[] = [
         $key,
@@ -28,7 +31,6 @@ abstract class PluginGeneratorBase extends PluginFieldable implements PluginGene
     }
     $process_result = $this->processWorkers($workers_info, $global_data);
     $this->finalizeWorkers($workers_info, $process_result);
-    return $process_result;
   }
 
   /**
@@ -130,10 +132,9 @@ abstract class PluginGeneratorBase extends PluginFieldable implements PluginGene
 
   static function getSchemaChildren() {
     return [
-      'workers' => [ '_type' => 'prototype', '_required' => TRUE, '_prototype' => [
+      'workers' => [ '_type' => 'prototype', '_required' => FALSE, '_prototype' => [
         '_type' => 'partial', '_required' => TRUE, '_partial' => 'worker',
       ]],
-      'description' => ['_type' => 'text', '_required' => FALSE],
     ];
   }
 

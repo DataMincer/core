@@ -162,38 +162,8 @@ abstract class Plugin implements PluginInterface {
     $r[$leaf_key] = $info;
   }
 
-//  protected function evaluateComponents($config) {
-//    $result = [];
-//    foreach ($config as $key => $info) {
-//      if (is_object($info) && $info instanceof PluginInterface) {
-//        $result[$key] = $info->evaluate();
-//      }
-//      else if (is_array($info) && count($info)) {
-//        $result[$key] = $this->evaluateComponents($info);
-//      }
-//    }
-//    return $result;
-//  }
-
-
   public function setData($data, $recursive = TRUE) {
     $this->data = Util::arrayMergeDeep($this->data, $data);
-//    if ($recursive) {
-//      $this->setDataRecursively($this->config, $data);
-//    }
-  }
-
-  protected function setDataRecursively($config, $data) {
-    foreach ($config as $key => $info) {
-      if (is_object($info)) {
-        /** @var PluginInterface $plugin */
-        $plugin = $info;
-        $plugin->setData($data);
-      }
-      else if (is_array($info)) {
-        $this->setDataRecursively($info, $data);
-      }
-    }
   }
 
   public function getData() {
