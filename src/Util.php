@@ -22,6 +22,19 @@ class Util {
     }
   }
 
+  public static function getJson($filename) {
+    if (($content = @file_get_contents($filename)) === FALSE) {
+      throw new DataMincerException("Cannot read JSON file '$filename'");
+    }
+    /** @noinspection PhpComposerExtensionStubsInspection */
+    $decoded = json_decode($content, TRUE);
+    if ($decoded === NULL) {
+      /** @noinspection PhpComposerExtensionStubsInspection */
+      throw new DataMincerException("Error parsing JSON file '$filename' :\n" . json_last_error_msg());
+    }
+    return $decoded;
+  }
+
   public static function toJson($data, $sort = FALSE) {
     /** @noinspection PhpComposerExtensionStubsInspection */
     if ($sort) {

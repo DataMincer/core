@@ -27,7 +27,7 @@ class Manager {
   protected $plugins;
 
   function __construct($options, $logger) {
-    $this->options = $this->parseOptions($options);
+    $this->options = $this->getOptions($options);
     DataMincer::setDebug($options['debug']);
     DataMincer::setLogger($logger);
     Timer::setEnabled($options['timer']);
@@ -39,6 +39,27 @@ class Manager {
         Timer::result();
       });
     }
+  }
+
+  protected function getOptions($overrides) {
+    // Read defaults
+    $options = $this->getDefaultOptions();
+    // Read options from composer.json
+    $composer_options = [];
+    if (file_exists('composer.json')) {
+      $composer = Util::getJson('composer.json');
+      if (isset($composer['extra']['data-mincer']) && is_array($composer['extra']['data-mincer'])) {
+        $composer_options = $composer['extra']['data-mincer'];
+      }
+    }
+    foreach([$composer_options, $overrides] as $local_options) {
+      foreach ($options as $key => $value) {
+        if (isset($local_options[$key]) && is_scalar($local_options[$key])) {
+          $options[$key] = $local_options[$key];
+        }
+      }
+    }
+    return $this->parseOptions($options);
   }
 
   public function initUnits() {
@@ -75,8 +96,16 @@ class Manager {
     }
     Timer::end('Schema validation');
 
+    $file_manager = new FileManager([
+      'bundlesPath' =>  $this->options['bundlesPath'],
+      'buildPath' =>  $this->options['buildPath'],
+      'tempPath' => $this->options['tempPath'],
+      'bundleName' => $data['bundle']['name'],
+      'bundlePath' => $data['bundle']['path'],
+    ]);
+
     /** @var PluginUnitInterface $unit */
-    $unit = $this->createUnit($config, $state);
+    $unit = $this->createUnit($config, $state, $file_manager);
 
     // Add extra data
     $unit->setData($data);
@@ -206,15 +235,15 @@ class Manager {
     return [$name, $args];
   }
 
-  protected function createUnit($config, $state, $key = NULL, $path = []) {
+  protected function createUnit($config, $state, $file_manager, $key = NULL, $path = []) {
     if (array_key_exists('_pluginType', $config)) {
       $plugin_type = $config['_pluginType'];
       unset($config['_pluginType']);
-      $plugin_config = $this->createUnit($config, $state, $key, $path);
+      $plugin_config = $this->createUnit($config, $state, $file_manager, $key, $path);
       /** @var ReflectionClass $class */
       $class = $this->pluginsInfo[$plugin_type][$config[$plugin_type]];
       /** @var PluginInterface $plugin */
-      $plugin = $class->newInstance($key, $plugin_config, $state, $path);
+      $plugin = $class->newInstance($key, $plugin_config, $state, $file_manager, $path);
       $this->addPlugin($plugin);
       return $plugin;
     }
@@ -225,7 +254,7 @@ class Manager {
       $result = [];
       foreach ($config as $key => $info) {
         if (is_array($info)) {
-          $result[$key] = $this->createUnit($info, $state, $key, $path);
+          $result[$key] = $this->createUnit($info, $state, $file_manager, $key, $path);
         }
         else {
           $result[$key] = $info;
@@ -398,7 +427,7 @@ class Manager {
 
   protected function parseOptions($options) {
     $result = [];
-    foreach($this->optionsDefaults() as $k => $v) {
+    foreach($this->getDefaultOptions() as $k => $v) {
       $value = array_key_exists($k, $options) ? $options[$k] : $v;
       if (method_exists($this, $method_name = 'processArg' . ucfirst($k))) {
         $value = $this->$method_name($value);
@@ -453,16 +482,16 @@ class Manager {
     $bundles_data = [];
     $opt = $this->options;
     // Find units in the unitsDir
-    foreach (new DirectoryIterator($opt['basePath']) as $fileInfo) {
+    foreach (new DirectoryIterator($opt['bundlesPath']) as $fileInfo) {
       if ($fileInfo->isDot() || !$fileInfo->isDir()) {
         continue;
       }
       $dir = $fileInfo->getFilename();
-      if (file_exists($file = $opt['basePath'] . '/' . $dir . '/' . $dir . '.yml')) {
+      if (file_exists($file = $opt['bundlesPath'] . '/' . $dir . '/' . $dir . '.yml')) {
         $bundle_name = $dir;
         // TODO Add overrides
         $bundles_data[$bundle_name] = [
-          'path' => $opt['basePath'] . '/' . $dir,
+          'path' => $opt['bundlesPath'] . '/' . $dir,
           'data' => Util::getYaml($file),
         ];
       }
@@ -470,10 +499,11 @@ class Manager {
     return $bundles_data;
   }
 
-  protected function optionsDefaults() {
+  protected function getDefaultOptions() {
     return [
-      'basePath' => '.',
-      'dataPath' => 'data',
+      'bundlesPath' => 'bundles',
+      'buildPath' => 'build',
+      'tempPath' => sys_get_temp_dir(),
       'filters' => [],
       'novalidate' => FALSE,
     ];

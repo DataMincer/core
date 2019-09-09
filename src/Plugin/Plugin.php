@@ -3,6 +3,7 @@
 namespace DataMincerCore\Plugin;
 
 use DataMincerCore\Exception\PluginException;
+use DataMincerCore\FileManager;
 use DataMincerCore\State;
 use DataMincerCore\Util;
 
@@ -21,6 +22,8 @@ abstract class Plugin implements PluginInterface {
   protected $dependencies = [];
   /** @var State */
   protected $state;
+  /** @var FileManager */
+  protected $fileManager;
   /**
    * @var array|null
    */
@@ -32,6 +35,15 @@ abstract class Plugin implements PluginInterface {
   /** @var boolean */
   protected $initialized;
 
+  public function __construct($name, $config, $state, $file_manager, $path = []) {
+    $this->name = $name;
+    $this->config = $config;
+    $this->state = $state;
+    $this->data = ['name' => $name];
+    $this->_pluginPath = $path;
+    $this->initialized = FALSE;
+    $this->fileManager = $file_manager;
+  }
   public static function pluginId() {
     return static::$pluginId;
   }
@@ -180,15 +192,6 @@ abstract class Plugin implements PluginInterface {
 
   public function getDependencies() {
     return $this->dependencies;
-  }
-
-  public function __construct($name, $config, $state, $path = []) {
-    $this->name = $name;
-    $this->config = $config;
-    $this->state = $state;
-    $this->data = ['name' => $name];
-    $this->_pluginPath = $path;
-    $this->initialized = FALSE;
   }
 
   public static function isDefault() {

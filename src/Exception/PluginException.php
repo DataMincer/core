@@ -13,7 +13,7 @@ class PluginException extends Exception {
    * @param PluginInterface $plugin
    */
   public function __construct($message, $plugin) {
-    $message = ucfirst($plugin::pluginType()) . ' plugin "' . $plugin::pluginId() . '" error: ' . $message . "\nLocation: " . $plugin->path();
+    $message = ucfirst($plugin::pluginType()) . ' plugin \'' . $plugin::pluginId() . '\' error: ' . $message . "\nLocation: " . $plugin->path();
     parent::__construct($message);
   }
 
