@@ -22,6 +22,15 @@ class Util {
     }
   }
 
+  public static function fromYaml($data) {
+    try {
+      return Yaml::parse($data, TRUE);
+    }
+    catch (ParseException $e) {
+      throw new DataMincerException("Error parsing YAML data:\n '$data' \n" . $e->getMessage());
+    }
+  }
+
   public static function getJson($filename) {
     if (($content = @file_get_contents($filename)) === FALSE) {
       throw new DataMincerException("Cannot read JSON file '$filename'");

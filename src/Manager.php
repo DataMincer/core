@@ -46,20 +46,39 @@ class Manager {
     $options = $this->getDefaultOptions();
     // Read options from composer.json
     $composer_options = [];
+    $composer_options_parsed = [];
     if (file_exists('composer.json')) {
       $composer = Util::getJson('composer.json');
-      if (isset($composer['extra']['data-mincer']) && is_array($composer['extra']['data-mincer'])) {
-        $composer_options = $composer['extra']['data-mincer'];
+      if (isset($composer['extra']['data-mincer-options']) && is_array($composer['extra']['data-mincer-options'])) {
+        $composer_options = $composer['extra']['data-mincer-options'];
+      }
+      if (isset($composer['extra']['data-mincer-options-parsed']) && is_array($composer['extra']['data-mincer-options-parsed'])) {
+        $composer_options_parsed = $composer['extra']['data-mincer-options-parsed'];
       }
     }
-    foreach([$composer_options, $overrides] as $local_options) {
-      foreach ($options as $key => $value) {
-        if (isset($local_options[$key]) && is_scalar($local_options[$key])) {
-          $options[$key] = $local_options[$key];
+    $options_list_parsed = [];
+    foreach ([$options, $composer_options, $overrides] as $index => $local_options) {
+      $options_list_parsed[$index] = $this->parseOptions($local_options);
+    }
+    foreach ($composer_options_parsed as $key => $value) {
+      if (isset($options_list_parsed[1][$key])) {
+        $options_list_parsed[1][$key] = $composer_options_parsed[$key];
+      }
+    }
+
+    foreach ($options_list_parsed as $index => $options_parsed) {
+      foreach ($options as $key => $option) {
+        if (!empty($options_parsed[$key])) {
+          if (is_array($option)) {
+            $options[$key] = Util::arrayMergeDeep($options[$key], $options_parsed[$key]);
+          }
+          else {
+            $options[$key] = $options_parsed[$key];
+          }
         }
       }
     }
-    return $this->parseOptions($options);
+    return $options;
   }
 
   public function initUnits() {
@@ -442,18 +461,18 @@ class Manager {
     foreach ($filters as $filter) {
       if (preg_match('~^([^:]*)?(?::(.*))?$~', $filter, $matches)) {
         $bundle_list = trim($matches[1])? explode(static::FILTERS_SEPARATOR, $matches[1]) : ['*'];
-        $conditions = isset($matches[2]) && trim($matches[2])? explode(static::FILTERS_SEPARATOR, $matches[2]) : [];
+        $pairs = isset($matches[2]) && trim($matches[2])? explode(static::FILTERS_SEPARATOR, $matches[2]) : [];
         foreach($bundle_list as $bundle_name) {
           if (!isset($filter_list[$bundle_name])) {
-            $filter_list[$bundle_name] = $conditions;
+            $filter_list[$bundle_name] = $pairs;
           }
           else {
-            $filter_list[$bundle_name] = array_unique(array_merge($filter_list[$bundle_name], $conditions), SORT_STRING);
+            $filter_list[$bundle_name] = array_unique(array_merge($filter_list[$bundle_name], $pairs), SORT_STRING);
           }
         }
       }
       else {
-        throw new DataMincerException("Incorrect filter format.");
+        throw new DataMincerException("Incorrect filter format: $filter");
       }
     }
     // Merge filters
@@ -465,16 +484,50 @@ class Manager {
     return $filter_list;
   }
 
+  protected function processArgOverrides($overrides) {
+    $override_list = [];
+    foreach ($overrides as $override) {
+      if (preg_match('~^([^:]*)?(?::(.*))?$~', $override, $matches)) {
+        $bundle_list = trim($matches[1])? explode(static::FILTERS_SEPARATOR, $matches[1]) : ['*'];
+        $value = Util::fromYaml($matches[2]);
+        foreach($bundle_list as $bundle_name) {
+          if (!isset($override_list[$bundle_name])) {
+            $override_list[$bundle_name] = $value;
+          }
+          else {
+            $override_list[$bundle_name] = Util::arrayMergeDeep($override_list[$bundle_name], $value);
+          }
+        }
+      }
+      else {
+        throw new DataMincerException("Incorrect override format: $override");
+      }
+    }
+    // Merge overrides
+    if (isset($override_list['*'])) {
+      foreach (array_keys($override_list) as $bundle_name) {
+        $override_list[$bundle_name] = array_unique(array_merge($override_list[$bundle_name], $override_list['*']), SORT_STRING);
+      }
+    }
+    return $override_list;
+  }
+
   protected function initBundles() {
     $bundles_data = $this->discoverBundles();
     $filters = $this->options['filters'];
+    $overrides = $this->options['overrides'];
     $this->bundles = [];
     foreach ($bundles_data as $name => $bundle_data_info) {
       if (count($filters) && !array_key_exists($name, $filters)) {
         // Filter out bundles
         continue;
       }
-      $this->bundles[$name] = new Bundle($name, $bundle_data_info['data'], $filters[$name] ?? ($filters['*'] ?? []), ['path' => $bundle_data_info['path']]);
+      $extra_data = [
+        'path' => $bundle_data_info['path']
+      ];
+      $bundle_filters = $filters[$name] ?? ($filters['*'] ?? []);
+      $bundle_overrides = $overrides[$name] ?? ($overrides['*'] ?? []);
+      $this->bundles[$name] = new Bundle($name, $bundle_data_info['data'], $bundle_filters, $bundle_overrides, $extra_data);
     }
   }
 
@@ -505,7 +558,9 @@ class Manager {
       'buildPath' => 'build',
       'tempPath' => sys_get_temp_dir(),
       'filters' => [],
+      'overrides' => [],
       'novalidate' => FALSE,
+      'verbose' => 0,
     ];
   }
 
