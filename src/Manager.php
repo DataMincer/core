@@ -534,27 +534,48 @@ class Manager {
   protected function discoverBundles() {
     $bundles_data = [];
     $opt = $this->options;
-    // Find units in the unitsDir
-    foreach (new DirectoryIterator($opt['bundlesPath']) as $fileInfo) {
-      if ($fileInfo->isDot() || !$fileInfo->isDir()) {
-        continue;
+
+    if (!empty($opt['bundlesPath'])) {
+      // Multi-bundle mode
+      foreach (new DirectoryIterator($opt['bundlesPath']) as $fileInfo) {
+        if ($fileInfo->isDot() || !$fileInfo->isDir()) {
+          continue;
+        }
+        $dir = $fileInfo->getFilename();
+        if (file_exists($file = $opt['bundlesPath'] . '/' . $dir . '/' . $dir . '.yml')) {
+          $bundle_name = $dir;
+          // TODO Add overrides
+          $bundles_data[$bundle_name] = [
+            'path' => $opt['bundlesPath'] . '/' . $dir,
+            'data' => Util::getYaml($file),
+          ];
+        }
       }
-      $dir = $fileInfo->getFilename();
-      if (file_exists($file = $opt['bundlesPath'] . '/' . $dir . '/' . $dir . '.yml')) {
-        $bundle_name = $dir;
-        // TODO Add overrides
-        $bundles_data[$bundle_name] = [
-          'path' => $opt['bundlesPath'] . '/' . $dir,
-          'data' => Util::getYaml($file),
-        ];
+    }
+    else {
+      // Single-bundle mode
+      $bundle_path = $opt['bundlePath'] . '/bundle.yml';
+      if (!file_exists($bundle_path)) {
+        throw new UnitException('Bundle not found: ' . $bundle_path);
       }
+      $bundle_real_path = realpath($bundle_path);
+      $bundle_name = basename(dirname($bundle_real_path));
+      if (empty($bundle_name)) {
+        throw new UnitException('Cannot determine the bundle name.');
+      }
+      $bundles_data[$bundle_name] = [
+        'path' => $opt['bundlePath'],
+        'data' => Util::getYaml($bundle_path),
+      ];
+
     }
     return $bundles_data;
   }
 
   protected function getDefaultOptions() {
     return [
-      'bundlesPath' => 'bundles',
+      'bundlesPath' => '',
+      'bundlePath' => './',
       'buildPath' => 'build',
       'tempPath' => sys_get_temp_dir(),
       'filters' => [],
