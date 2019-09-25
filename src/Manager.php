@@ -542,7 +542,7 @@ class Manager {
           continue;
         }
         $dir = $fileInfo->getFilename();
-        if (file_exists($file = $opt['bundlesPath'] . '/' . $dir . '/' . $dir . '.yml')) {
+        if (file_exists($file = $opt['bundlesPath'] . '/' . $dir . '/bundle.yml')) {
           $bundle_name = $dir;
           // TODO Add overrides
           $bundles_data[$bundle_name] = [
