@@ -13,21 +13,17 @@ abstract class Plugin implements PluginInterface {
   protected static $pluginType = NULL;
   protected static $pluginDeps = [];
   protected static $isDefault = FALSE;
-  protected $name;
-  protected $config = [];
-  protected $data = [];
+  protected $_name;
+  protected $_config = [];
+  protected $_data = [];
   /** @var PluginInterface */
-  protected $parent;
+  protected $_parent;
   /** @var Plugin[] */
-  protected $dependencies = [];
+  protected $_dependencies = [];
   /** @var State */
-  protected $state;
+  protected $_state;
   /** @var FileManager */
-  protected $fileManager;
-  /**
-   * @var array|null
-   */
-  protected $values = [];
+  protected $_fileManager;
   /**
    * @var array
    */
@@ -35,14 +31,28 @@ abstract class Plugin implements PluginInterface {
   /** @var boolean */
   protected $initialized;
 
+  /**
+   * Plugin constructor.
+   * @param $name
+   * @param $config
+   * @param $state
+   * @param $file_manager
+   * @param array $path
+   * @throws PluginException
+   */
   public function __construct($name, $config, $state, $file_manager, $path = []) {
-    $this->name = $name;
-    $this->config = $config;
-    $this->state = $state;
-    $this->data = ['name' => $name];
+    $this->_name = $name;
+    // Prohibit using object property names for $config
+    $prop_names = array_keys(get_object_vars($this));
+    if ($prohibit_list = array_intersect_key(array_flip(array_keys($config)), array_flip($prop_names))) {
+      $this->error("The following property names are reserved: " . implode(', ', $prohibit_list));
+    }
+    $this->_config = $config;
+    $this->_state = $state;
+    $this->_data = ['name' => $name];
     $this->_pluginPath = $path;
     $this->initialized = FALSE;
-    $this->fileManager = $file_manager;
+    $this->_fileManager = $file_manager;
   }
   public static function pluginId() {
     return static::$pluginId;
@@ -57,7 +67,7 @@ abstract class Plugin implements PluginInterface {
   }
 
   public function name() {
-    return $this->name;
+    return $this->_name;
   }
 
   public function path() {
@@ -65,11 +75,11 @@ abstract class Plugin implements PluginInterface {
   }
 
   public function getConfig() {
-    return $this->config;
+    return $this->_config;
   }
 
   public function initialize() {
-    $this->initializeComponents($this->config);
+    $this->initializeComponents($this->_config);
     $this->initialized = TRUE;
   }
 
@@ -89,7 +99,7 @@ abstract class Plugin implements PluginInterface {
   }
 
   public function evaluateChildren($data = [], $include_paths = [], $exclude_paths = []) {
-    $paths = Util::arrayPaths($this->config);
+    $paths = Util::arrayPaths($this->_config);
     // Filter paths
     if ($include_paths) {
       $paths = array_filter($paths, function ($item) use ($include_paths) {
@@ -103,7 +113,7 @@ abstract class Plugin implements PluginInterface {
     }
     $result = [];
     foreach ($paths as $path) {
-      $this->evaluateByPath($result, $path, $this->config, $data);
+      $this->evaluateByPath($result, $path, $this->_config, $data);
     }
     return $result;
   }
@@ -175,23 +185,24 @@ abstract class Plugin implements PluginInterface {
   }
 
   public function setData($data, $recursive = TRUE) {
-    $this->data = Util::arrayMergeDeep($this->data, $data);
+    $this->_data = Util::arrayMergeDeep($this->_data, $data);
   }
 
   public function getData() {
+    xdebug_break();
     return [
       static::$pluginType => [
         'name' => $this->name()
       ]
-    ] + $this->data;
+    ] + $this->_data;
   }
 
-  public function setDependencies($dependencies) {
-    $this->dependencies = $dependencies;
+  public function setDependencies($_dependencies) {
+    $this->_dependencies = $_dependencies;
   }
 
   public function getDependencies() {
-    return $this->dependencies;
+    return $this->_dependencies;
   }
 
   public static function isDefault() {
@@ -221,8 +232,8 @@ abstract class Plugin implements PluginInterface {
   }
 
   public function getDefaultDependency($type) {
-    if (array_key_exists($type, $this->dependencies)) {
-      return current($this->dependencies[$type]);
+    if (array_key_exists($type, $this->_dependencies)) {
+      return current($this->_dependencies[$type]);
     }
     return FALSE;
   }

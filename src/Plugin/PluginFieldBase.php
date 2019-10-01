@@ -5,7 +5,7 @@ namespace DataMincerCore\Plugin;
 use DataMincerCore\Exception\PluginException;
 
 /**
- * @property string|null persistent
+ * @property PluginFieldInterface persistent
  * @property string|null scope
  */
 abstract class PluginFieldBase extends PluginFieldable implements PluginFieldInterface {
@@ -28,16 +28,16 @@ abstract class PluginFieldBase extends PluginFieldable implements PluginFieldInt
    */
   public function value($data = NULL) {
     $state_key = NULL;
-    if ($this->persistent) {
-      $state_key = $this->resolveParam($data, $this->persistent);
-      $value = $this->state->get($state_key, $this->name());
+    if (isset($this->persistent)) {
+      $state_key = $this->persistent->value($data);
+      $value = $this->_state->get($state_key, $this->name());
       if (!is_null($value)) {
         return $value;
       }
     }
     $value = $this->getValue($data);
     if ($this->persistent) {
-      $this->state->set($state_key, $this->name(), $value);
+      $this->_state->set($state_key, $this->name(), $value);
     }
     return $value;
   }
@@ -111,7 +111,7 @@ abstract class PluginFieldBase extends PluginFieldable implements PluginFieldInt
   static function getSchemaChildren() {
     return [
       'field' => ['_type' => 'text', '_required' => TRUE],
-      'persistent' => ['_type' => 'text', '_required' => FALSE],
+      'persistent' => ['_type' => 'partial', '_required' => FALSE, '_partial' => 'field'],
     ];
   }
 

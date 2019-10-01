@@ -22,7 +22,7 @@ abstract class PluginUnitBase extends PluginFieldable implements PluginUnitInter
   }
 
   public function getData() {
-    return $this->data;
+    return $this->_data;
   }
 
   protected function discoverTasks() {
@@ -41,7 +41,7 @@ abstract class PluginUnitBase extends PluginFieldable implements PluginUnitInter
    */
   public function taskGenerate($generators = []) {
     // Evaluate all except for generators for now
-    $data = $this->evaluateChildren($this->data, [], [['generators']]) + $this->data;
+    $data = $this->evaluateChildren($this->_data, [], [['generators']]) + $this->_data;
     // Generators section is not required
     if (!empty($this->generators)) {
       if ($diff = array_diff($generators, array_keys($this->generators))) {
@@ -58,7 +58,7 @@ abstract class PluginUnitBase extends PluginFieldable implements PluginUnitInter
   }
 
   protected function makeUnitId() {
-    return sha1(serialize($this->config));
+    return sha1(serialize($this->_config));
   }
 
   public function id($short = FALSE) {
@@ -71,7 +71,7 @@ abstract class PluginUnitBase extends PluginFieldable implements PluginUnitInter
 
   protected function renderOrigin() {
     $result = [];
-    foreach ($this->data['origin'] as $dimension_name => $registers_info) {
+    foreach ($this->getData()['origin'] as $dimension_name => $registers_info) {
       foreach ($registers_info as $register => $info) {
         $register_num = substr($register, 1);
         $register_prefix = '';
@@ -96,7 +96,7 @@ abstract class PluginUnitBase extends PluginFieldable implements PluginUnitInter
   }
 
   public function getConfig() {
-    return $this->config;
+    return $this->_config;
   }
 
   protected function help($key) {
