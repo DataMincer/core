@@ -8,7 +8,7 @@ use DataMincerCore\Exception\UnitException;
 /**
  * @property PluginGeneratorInterface[] generators
  */
-abstract class PluginUnitBase extends PluginFieldable implements PluginUnitInterface {
+abstract class PluginUnitBase extends Plugin implements PluginUnitInterface {
 
   protected static $pluginType = 'unit';
 
@@ -155,7 +155,6 @@ abstract class PluginUnitBase extends PluginFieldable implements PluginUnitInter
           'default' => [ '_type' => 'text', '_required' => TRUE ],
           'one' => [ '_type' => 'array', '_required' => TRUE, '_children' => [
             'field' => [ '_type' => 'text',  '_required' => TRUE ],
-            'scope' => [ '_type' => 'text',  '_required' => FALSE ],
           ]],
         ],
       ],

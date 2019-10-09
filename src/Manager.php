@@ -152,13 +152,17 @@ class Manager {
     }
     else if ($schema['_type'] == 'array') {
       $result_schema = $schema;
+      $result_config = [];
       if (!is_null($plugin)) {
-        list($children_extension, $partials_extensions) = $this->getPluginSchemaChildren($plugin);
+        list($children_extension, $partials_extensions, $mixin) = $this->getPluginSchemaChildren($plugin);
         $result_partials += $partials_extensions;
         $result_schema['_children'] += $children_extension;
         $config = Util::arrayMergeDeep($config, $this->getDefaultConfig($plugin), TRUE);
+        if ($mixin) {
+          $config['_mixin'] = $mixin;
+        }
       }
-      $result_config = [];
+
       foreach ($config as $key => $info) {
         if (array_key_exists($key, $result_schema['_children'])) {
           $res = $this->getPluginSchemaAndConfig($info, $result_schema['_children'][$key], $result_partials);
@@ -210,9 +214,9 @@ class Manager {
         if (!array_key_exists($plugin_type, $config)) {
           throw new UnitException("Key '$plugin_type' not found in the config.", $config, $schema);
         }
-        list($plugin_name, $plugin_class, $plugin_services) = $this->getPluginInfo($config[$plugin_type], $plugin_type);
+        list($plugin_name, $plugin_class, $plugin_args) = $this->getPluginInfo($config[$plugin_type], $plugin_type);
         $config[$plugin_type] = $plugin_name;
-        $config['_pluginArgs'] = $plugin_services;
+        $config['_pluginArgs'] = $plugin_args;
         $config['_pluginType'] = $plugin_type;
         $_schema = $_schema['_choices']['one'];
         $res = $this->getPluginSchemaAndConfig($config, $_schema, $result_partials, $plugin_class);
@@ -389,20 +393,33 @@ class Manager {
   }
 
   protected function getPluginSchemaChildren(ReflectionClass $class) {
-    $result = [[], []];
+    $result = [[], [], []];
     if ($class->implementsInterface('DataMincerCore\\Plugin\\PluginInterface')) {
       try {
         $extra_keys = [
           '_pluginType' => ['_type' => 'text', '_required' => TRUE],
           '_pluginArgs' => ['_type' => 'prototype', '_required' => TRUE, '_min_items' => 0, '_prototype' => [
             '_type' => 'text', '_required' => TRUE,
-          ]],
+          ]]
         ];
-        $result = [
-          $extra_keys + $class->getMethod('getSchemaChildren')->invoke(NULL),
-          $class->getMethod('getSchemaPartials')->invoke(NULL),
-        ];
-        // Check for nested partials
+        $result[0] = $extra_keys + $class->getMethod('getSchemaChildren')->invoke(NULL);
+        $result[1] = $class->getMethod('getSchemaPartials')->invoke(NULL);
+        // Read mixins
+        $mixin_schema = $class->getMethod('getMixinSchema')->invoke(NULL);
+        if ($mixin_schema) {
+          $mixin = $class->getMethod('getMixin')->invoke(NULL);
+          if (is_string($mixin)) {
+            // We have YAML
+            try {
+              $mixin = Util::fromYaml($mixin);
+            }
+            catch (DataMincerException $e) {
+              throw new UnitException("Cannot read mixin definition: " . $e->getMessage());
+            }
+          }
+          $result[0]['_mixin'] = $mixin_schema;
+          $result[2] = $mixin;
+        }
       }
       catch(ReflectionException $e) {
         throw new UnitException("Schema extension error: " . $e->getMessage());

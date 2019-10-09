@@ -9,7 +9,7 @@ use DataMincerCore\Exception\PluginNoException;
 /**
  * @property PluginWorkerInterface[] workers
  */
-abstract class PluginGeneratorBase extends PluginFieldable implements PluginGeneratorInterface {
+abstract class PluginGeneratorBase extends Plugin implements PluginGeneratorInterface {
 
   protected static $pluginType = 'generator';
 

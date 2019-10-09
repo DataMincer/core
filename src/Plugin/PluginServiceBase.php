@@ -2,7 +2,7 @@
 
 namespace DataMincerCore\Plugin;
 
-abstract class PluginServiceBase extends PluginFieldable implements PluginServiceInterface {
+abstract class PluginServiceBase extends Plugin implements PluginServiceInterface {
 
   protected static $pluginType = 'service';
 

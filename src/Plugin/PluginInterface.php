@@ -15,7 +15,10 @@ interface PluginInterface {
   public function getData();
   public static function getSchemaChildren();
   public static function getSchemaPartials();
+  public static function getMixin();
+  public static function getMixinSchema();
   public static function defaultConfig($data = NULL);
+  public function mixin();
   public function initialize();
   public function evaluate($data = []);
   public function setDependencies($plugins);

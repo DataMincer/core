@@ -8,7 +8,7 @@ use DataMincerCore\Exception\PluginException;
  * @property PluginFieldInterface persistent
  * @property string|null scope
  */
-abstract class PluginFieldBase extends PluginFieldable implements PluginFieldInterface {
+abstract class PluginFieldBase extends Plugin implements PluginFieldInterface {
 
   protected static $pluginType = 'field';
 

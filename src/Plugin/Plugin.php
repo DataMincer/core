@@ -189,7 +189,6 @@ abstract class Plugin implements PluginInterface {
   }
 
   public function getData() {
-    xdebug_break();
     return [
       static::$pluginType => [
         'name' => $this->name()
@@ -231,11 +230,56 @@ abstract class Plugin implements PluginInterface {
     return [];
   }
 
+  public static function getMixin() {
+    return [];
+  }
+
+  public static function getMixinSchema() {
+    return [];
+  }
+
+  /**
+   * @return mixed
+   * @throws PluginException
+   */
+  public function mixin() {
+    if (array_key_exists('_mixin', $this->_config)) {
+      return $this->_config['_mixin'];
+    }
+    else {
+      $this->error("Plugin mixin doesn't exist");
+      return NULL;
+    }
+  }
+
   public function getDefaultDependency($type) {
     if (array_key_exists($type, $this->_dependencies)) {
       return current($this->_dependencies[$type]);
     }
     return FALSE;
+  }
+
+
+  public function __isset($name) {
+    return array_key_exists($name, $this->_config);
+  }
+
+  public function &__get($name) {
+    $result = NULL;
+    if (array_key_exists($name, $this->_config)) {
+      $result = $this->_config[$name];
+    }
+    return $result;
+  }
+
+  public function __set($name, $value) {
+    if (array_key_exists($name, $this->_config)) {
+      $this->_config[$name] = $value;
+    }
+    else {
+      // Add this property
+      $this->_config[$name] = $value;
+    }
   }
 
 }

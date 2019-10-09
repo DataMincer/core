@@ -4,7 +4,7 @@ namespace DataMincerCore\Plugin;
 
 use DataMincerCore\Util;
 
-abstract class PluginWorkerBase extends PluginFieldable implements PluginWorkerInterface {
+abstract class PluginWorkerBase extends Plugin implements PluginWorkerInterface {
 
   protected static $pluginType = 'worker';
 
