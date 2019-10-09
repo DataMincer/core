@@ -25,8 +25,8 @@ class FileManager {
     }
     $scheme = substr($uri, 0, $scheme_pos);
     $path = substr($uri, $scheme_pos + 3);
-    if (array_key_exists($scheme, $schemas = $this->getSchemes())) {
-      return $schemas[$scheme] . '/' . $path;
+    if (array_key_exists($scheme, $schemes = $this->getSchemes())) {
+      return $schemes[$scheme] . '/' . $path;
     }
     else {
       // Unknown scheme, just return the original $uri
