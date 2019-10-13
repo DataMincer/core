@@ -535,7 +535,7 @@ class Manager {
     $overrides = $this->options['overrides'];
     $this->bundles = [];
     foreach ($bundles_data as $name => $bundle_data_info) {
-      if (count($filters) && !array_key_exists($name, $filters)) {
+      if (count($filters) && !array_key_exists($name, $filters) && !array_key_exists('*', $filters)) {
         // Filter out bundles
         continue;
       }
@@ -551,6 +551,8 @@ class Manager {
   protected function discoverBundles() {
     $bundles_data = [];
     $opt = $this->options;
+    $bundle_name = '';
+    $bundle_real_path = '';
 
     if (!empty($opt['bundlesPath'])) {
       // Multi-bundle mode
@@ -560,12 +562,8 @@ class Manager {
         }
         $dir = $fileInfo->getFilename();
         if (file_exists($file = $opt['bundlesPath'] . '/' . $dir . '/bundle.yml')) {
+          $bundle_real_path = realpath($file);
           $bundle_name = $dir;
-          // TODO Add overrides
-          $bundles_data[$bundle_name] = [
-            'path' => $opt['bundlesPath'] . '/' . $dir,
-            'data' => Util::getYaml($file),
-          ];
         }
       }
     }
@@ -580,12 +578,11 @@ class Manager {
       if (empty($bundle_name)) {
         throw new UnitException('Cannot determine the bundle name.');
       }
-      $bundles_data[$bundle_name] = [
-        'path' => $opt['bundlePath'],
-        'data' => Util::getYaml($bundle_path),
-      ];
-
     }
+    $bundles_data[$bundle_name] = [
+      'path' => dirname($bundle_real_path),
+      'data' => Util::getYaml($bundle_real_path),
+    ];
     return $bundles_data;
   }
 
