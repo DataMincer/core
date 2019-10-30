@@ -13,11 +13,8 @@ class Units implements Iterator {
   protected $itemCallback;
   protected $position = 0;
   protected $bundle;
-  /** @var State */
-  protected $state;
 
   public function __construct(Bundle $bundle, $item_callback) {
-    $this->state = new State($bundle->getExtraData()['path']);
     $this->products = $bundle->getProducts();
     $this->productsInfo = $bundle->getProductsInfo();
     $this->bundle = $bundle;
@@ -36,7 +33,7 @@ class Units implements Iterator {
           'name' => $this->bundle->name(),
         ] + $this->bundle->getExtraData()
       ];
-      $this->items[$this->position] = call_user_func($this->itemCallback, $config, $this->state, $data);
+      $this->items[$this->position] = call_user_func($this->itemCallback, $config, $data);
     }
     return $this->items[$this->position];
   }

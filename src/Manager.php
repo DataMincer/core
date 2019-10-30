@@ -89,12 +89,11 @@ class Manager {
 
   /**
    * @param $config
-   * @param State $state
    * @param $data
    * @return mixed
    * @throws PluginException
    */
-  public function initUnit($config, $state, $data) {
+  public function initUnit($config, $data) {
     $schema = $this->baseSchema();
 
     // Extend schema and config
@@ -119,12 +118,16 @@ class Manager {
       'bundlesPath' =>  $this->options['bundlesPath'],
       'buildPath' =>  $this->options['buildPath'],
       'tempPath' => $this->options['tempPath'],
+      'cachePath' => $this->options['cachePath'],
       'bundleName' => $data['bundle']['name'],
       'bundlePath' => $data['bundle']['path'],
     ]);
 
+    $state = new State($file_manager->resolveUri($this->options['statePath'] . '/' . $data['bundle']['name']));
+    $cache = new Cache($file_manager->resolveUri($this->options['cachePath']) . '/' . $data['bundle']['name']);
+
     /** @var PluginUnitInterface $unit */
-    $unit = $this->createUnit($config, $state, $file_manager);
+    $unit = $this->createUnit($config, $state, $cache, $file_manager);
 
     // Add extra data
     $unit->setData($data);
@@ -258,15 +261,15 @@ class Manager {
     return [$name, $args];
   }
 
-  protected function createUnit($config, $state, $file_manager, $key = NULL, $path = []) {
+  protected function createUnit($config, $state, $cache, $file_manager, $key = NULL, $path = []) {
     if (array_key_exists('_pluginType', $config)) {
       $plugin_type = $config['_pluginType'];
       unset($config['_pluginType']);
-      $plugin_config = $this->createUnit($config, $state, $file_manager, $key, $path);
+      $plugin_config = $this->createUnit($config, $state, $cache, $file_manager, $key, $path);
       /** @var ReflectionClass $class */
       $class = $this->pluginsInfo[$plugin_type][$config[$plugin_type]];
       /** @var PluginInterface $plugin */
-      $plugin = $class->newInstance($key, $plugin_config, $state, $file_manager, $path);
+      $plugin = $class->newInstance($key, $plugin_config, $state, $cache, $file_manager, $path);
       $this->addPlugin($plugin);
       return $plugin;
     }
@@ -277,7 +280,7 @@ class Manager {
       $result = [];
       foreach ($config as $key => $info) {
         if (is_array($info)) {
-          $result[$key] = $this->createUnit($info, $state, $file_manager, $key, $path);
+          $result[$key] = $this->createUnit($info, $state, $cache, $file_manager, $key, $path);
         }
         else {
           $result[$key] = $info;
@@ -285,7 +288,6 @@ class Manager {
       }
       return $result;
     }
-
   }
 
   /**
@@ -589,9 +591,11 @@ class Manager {
   protected function getDefaultOptions() {
     return [
       'bundlesPath' => '',
-      'bundlePath' => './',
+      'bundlePath' => '',
       'buildPath' => 'build',
-      'tempPath' => sys_get_temp_dir(),
+      'tempPath' => sys_get_temp_dir() . '/datamincer/tmp',
+      'cachePath' => sys_get_temp_dir() . '/datamincer/cache',
+      'statePath' => sys_get_temp_dir() . '/datamincer/state',
       'filters' => [],
       'overrides' => [],
       'novalidate' => FALSE,

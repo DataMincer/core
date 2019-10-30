@@ -16,6 +16,7 @@ class FileManager {
       'build' => $this->options['buildPath'] . '/' . $bundle,
       'bundle' => $this->options['bundlePath'],
       'tmp' => $this->options['tempPath'] . '/' . $bundle,
+      'cache' => $this->options['cachePath'] . '/' . $bundle,
     ];
   }
 

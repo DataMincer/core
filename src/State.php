@@ -6,11 +6,14 @@ class State {
 
   const FILENAME = 'state.json';
 
+  protected $state_dir;
   protected $filepath;
   protected $data;
 
   public function __construct($path) {
-    $this->filepath = $path . '/' . self::FILENAME;
+    $this->state_dir = $path;
+    Util::prepareDir($this->state_dir);
+    $this->filepath = $this->state_dir . '/' . self::FILENAME;
     $this->data = $this->readData();
   }
 

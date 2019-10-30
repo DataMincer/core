@@ -2,11 +2,16 @@
 
 namespace DataMincerCore\Plugin;
 
+use DataMincerCore\Cache;
 use DataMincerCore\Exception\PluginException;
 use DataMincerCore\FileManager;
 use DataMincerCore\State;
 use DataMincerCore\Util;
 
+/**
+ * @property Cache cacheManager
+ * @property State stateManager
+ */
 abstract class Plugin implements PluginInterface {
 
   protected static $pluginId = NULL;
@@ -22,6 +27,8 @@ abstract class Plugin implements PluginInterface {
   protected $_dependencies = [];
   /** @var State */
   protected $_state;
+  /** @var Cache */
+  protected $_cache;
   /** @var FileManager */
   protected $_fileManager;
   /**
@@ -35,12 +42,13 @@ abstract class Plugin implements PluginInterface {
    * Plugin constructor.
    * @param $name
    * @param $config
-   * @param $state
+   * @param State $state
+   * @param Cache $cache
    * @param $file_manager
    * @param array $path
    * @throws PluginException
    */
-  public function __construct($name, $config, $state, $file_manager, $path = []) {
+  public function __construct($name, $config, $state, $cache, $file_manager, $path = []) {
     $this->_name = $name;
     // Prohibit using object property names for $config
     $prop_names = array_keys(get_object_vars($this));
@@ -49,6 +57,7 @@ abstract class Plugin implements PluginInterface {
     }
     $this->_config = $config;
     $this->_state = $state;
+    $this->_cache = $cache;
     $this->_data = ['name' => $name];
     $this->_pluginPath = $path;
     $this->initialized = FALSE;
@@ -266,6 +275,12 @@ abstract class Plugin implements PluginInterface {
 
   public function &__get($name) {
     $result = NULL;
+    if ($name === 'cacheManager') {
+      return $this->_cache;
+    }
+    if ($name === 'stateManager') {
+      return $this->_state;
+    }
     if (array_key_exists($name, $this->_config)) {
       $result = $this->_config[$name];
     }
