@@ -3,6 +3,7 @@
 namespace DataMincerCore;
 
 use DataMincerCore\Exception\DataMincerException;
+use Exception;
 
 class CacheBin {
 
@@ -102,7 +103,7 @@ class CacheBin {
     try {
       return unserialize($data);
     }
-    catch (\Exception $e) {
+    catch (Exception $e) {
       return FALSE;
     }
   }
