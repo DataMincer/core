@@ -91,7 +91,7 @@ class Timer {
       $probe_id = $this->arrayKeyLast($this->paired_probes[$name]);
       if (is_null($probe_id)) {
         // Unmatched 'end' - ignoring
-        DataMincer::logger()->warn('Timer: unmatched END for "' . $name . '" mark');
+        DataMincer::logger()->warning('Timer: unmatched END for "' . $name . '" mark');
         return;
       }
       $this->intervals[$name][] = $this->makeInterval($this->paired_probes[$name][$probe_id], $this->makeProbe());

@@ -49,7 +49,7 @@ abstract class PluginUnitBase extends Plugin implements PluginUnitInterface {
       }
       foreach($this->generators as $generator_name => $generator) {
         if (empty($generators) || in_array($generator_name, $generators)) {
-          DataMincer::logger()->msg("Running generator: $generator_name");
+          DataMincer::logger()->info("Running generator: $generator_name");
           $generator_data = $generator->evaluate($data);
           $generator->process($generator_data, $data);
         }

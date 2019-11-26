@@ -2,6 +2,8 @@
 
 namespace DataMincerCore;
 
+use Psr\Log\LoggerInterface;
+
 class DataMincer {
 
   public const VERSION = '0.2';
@@ -10,7 +12,7 @@ class DataMincer {
   /** @var LoggerInterface */
   protected static $logger;
 
-  public static function setLogger($logger) {
+  public static function setLogger(LoggerInterface $logger) {
     static::$logger = $logger;
   }
 

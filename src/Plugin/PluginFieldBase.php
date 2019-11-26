@@ -3,6 +3,7 @@
 namespace DataMincerCore\Plugin;
 
 use DataMincerCore\Exception\PluginException;
+use Exception;
 
 /**
  * @property PluginFieldInterface persistent
@@ -86,7 +87,14 @@ abstract class PluginFieldBase extends Plugin implements PluginFieldInterface {
     if (is_string($param) && strpos($param, '@') === 0) {
       $expr = substr($param, 1);
       // Allow patterns like ../../variable
-      $parts = preg_split('~(?<!\.)\.(?!\./)~', $expr);
+      $parser = new ParamParser();
+      try {
+        $parts = $parser->parse($expr);
+      }
+      catch (Exception $e) {
+        $this->error("Cannot resolve param '$param': " . $e->getMessage());
+      }
+      //$parts = preg_split('~(?<!\.)\.(?!\./)~', $expr);
       foreach ($parts as $part) {
         if (is_object($data) && isset($data->$part)) {
           $data = $data->$part;

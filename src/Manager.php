@@ -4,6 +4,7 @@ namespace DataMincerCore;
 
 use DirectoryIterator;
 use Exception;
+use Psr\Log\LoggerInterface;
 use ReflectionClass;
 use ReflectionException;
 use DataMincerCore\Exception\UnitException;
@@ -26,7 +27,7 @@ class Manager {
   protected $pluginsInfo;
   protected $plugins;
 
-  function __construct($options, $logger) {
+  function __construct($options, LoggerInterface $logger) {
     $this->options = $this->getOptions($options);
     DataMincer::setDebug($options['debug']);
     DataMincer::setLogger($logger);
