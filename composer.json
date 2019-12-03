@@ -10,12 +10,12 @@
     }
   ],
   "type": "library",
-  "prefer-stable": true,
   "require":  {
-    "ext-mbstring": "*",
-    "symfony/yaml": "2.*",
-    "romaricdrigon/metayaml": "dev-master",
-    "onkeltem/yaml-elc": "dev-master"
+    "php": ">=7.2",
+    "datamincer/yaml-elc": "*",
+    "symfony/yaml": "^2.8.52",
+    "romaricdrigon/metayaml": "^1.1",
+    "ext-mbstring":"*"
   },
   "autoload": {
     "psr-4": {
